@@ -123,7 +123,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
         ml = sum(logpdf(Normal(mean(x), std(x)), x)) #+ sum(pn(sigmas, sn, an=an))
         return([1.0], mu, sigmas, ml)
     end
-    nF = length(x)
+    n = length(x)
     tau = min(tau, 1-tau)
     wi = copy(wi_init)
     mu = copy(mu_init)
@@ -135,15 +135,9 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
     tmp_mu=zeros(ncomponent)
     wi_divide_sigmas = zeros(wi)
     inv_2sigmas_sq = ones(sigmas) .* 1e20
-
-    if taufixed
-        wi_tmp = wi[whichtosplit]+wi[whichtosplit+1]
-        wi[whichtosplit] = wi_tmp*tau
-        wi[whichtosplit+1] = wi_tmp*(1-tau)
-        mu = min(max(mu, mu_lb), mu_ub)
-    end
-
-    pwi = ones(nF, ncomponent) ./ ncomponent
+    pwi = ones(n, ncomponent) ./ ncomponent
+    xtmp = copy(x)
+    
     for iter_em in 1:maxiteration
         fill!(wi_divide_sigmas, 0.0)
         fill!(inv_2sigmas_sq, 0.0)
@@ -156,8 +150,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
                 inv_2sigmas_sq[i] = 0.5 / sigmas[i]^2
             end
         end
-        for i in 1:nF
-            # pwi[i, :] = ratiosumexp(-(mu .- x[i]).^2 ./ (2 .* sigmas .^ 2), wi ./ sigmas)
+        for i in 1:n
             for j in 1:ncomponent
                 tmp_mu[j] = -(mu[j] - x[i])^2 * inv_2sigmas_sq[j]
             end
@@ -170,9 +163,12 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
 
         for j in 1:ncomponent
             colsum = sum(pwi[:, j])
-            wi[j] = colsum / nF
-            mu[j] = wsum(pwi[:,j] ./ colsum, x)
-            sigmas[j] = sqrt((wsum(pwi[:,j], (x .- mu[j]).^2) + 2 * an * sn[j]^2) / (sum(pwi[:,j]) + 2*an))
+            wi[j] = colsum / n
+            mu[j] = wsum(pwi[:,j], x) / colsum
+            
+            add!(xtmp, x, -mu[j], n)
+            sqr!(xtmp, xtmp, n)
+            sigmas[j] = sqrt((wsum(pwi[:,j], xtmp) + 2 * an * sn[j]^2) / (colsum + 2*an))
         end
 
         if taufixed
