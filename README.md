@@ -16,7 +16,12 @@ To install this package, run
 
     Pkg.clone("https://github.com/panlanfeng/GaussianMixtureTest.jl.git")
 
-The major functions are `gmm`, `asymptoticdistribution` and `kstest`. `gmm` estimates the parameters via EM algorithm. `asymptoticdistribution` simulates the asymptotic distribution of the test statistic when the number of components is greater than 2. `kstest` conducts the Kasahara-Shimotsu test.
+The major functions are `gmm`, `asymptoticdistribution` and `kstest`. `gmm` estimates the parameters via EM algorithm. `asymptoticdistribution` simulates the asymptotic distribution of the test statistic when the number of components is greater than 2. `kstest` conducts the Kasahara-Shimotsu test. 
+
+See also the usage by running
+
+    ?gmm
+
 
 ## Optional Arguments
 
@@ -58,7 +63,7 @@ See the example code also in [`runtests.jl`](test/runtests.jl)
     wi, mu, sigmas, ml = gmm(x, 2)
     
     #Do the KS test for C=2 v.s. C=3
-    kstest(x, 3)
+    kstest(x, 2)
 
 
 ## Reference

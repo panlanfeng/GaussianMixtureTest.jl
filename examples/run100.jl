@@ -14,13 +14,12 @@ P = zeros(100)
 for b in 1:100
     srand(b)
     x = rand(m, 1000)
-    T[b], P[b] = kstest(x, 3, debuginfo=true)
+    T[b], P[b] = kstest(x, 2)
     print(b,"->", T[b], " | ")
 end
 
 x = rand(m, 1000)
 Ttrue = asymptoticdistribution(x, wi_true, mu_true, sigmas_true)
-
 
 xs = linspace(0.01, 14, 500)
 den1=kerneldensity(Ttrue, xeval=xs, kernel=gammakernel, lb=0., h=.2)

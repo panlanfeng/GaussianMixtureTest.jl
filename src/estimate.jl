@@ -91,8 +91,22 @@ function stopRule(pa::Vector, pa_old::Vector; tol=.005)
     maximum(abs(pa .- pa_old)./(abs(pa).+.001)) < tol
 end
 
+"""
+   gmm(x, ncomponent)
 
-#Estimate gaussian mixture parameters given the initial value of γ
+Estimate parameters of `ncomponent` gaussian mixture on the data `x`.
+Optional arguments of `gmm`:
+
+ - `ncomponent`: the number of components
+ - `wi_init` `mu_init` and `sigmas_init`: the initial values
+ - `maxiteration`: the number of iterations
+ - `tol`: the tolerance of convergence criteria
+ - `an` and `sn`: the penalty weight and variance term
+ - `taufixed`: for `kstest`, whether fix the `tau` value
+ - `whichtosplit` and `tau`: for `kstest`, which component to split and the `split` proportion
+ - `mu_lb` and `mu_ub` for `kstest`, the lower and upper limits of components means
+    
+"""
 function gmm(x::RealVector{Float64}, ncomponent::Int, 
     wi_init::Vector{Float64}=ones(ncomponent)/ncomponent,
      mu_init::Vector{Float64}=quantile(x, linspace(0, 1, ncomponent+2)[2:end-1]), 
@@ -100,7 +114,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
       whichtosplit::Int64=1, tau::Float64=.5,
        mu_lb::Vector{Float64}=-Inf.*ones(wi_init),
         mu_ub::Vector{Float64}=Inf.*ones(wi_init), 
-        an::Float64=.25, sn::Vector{Float64}=ones(wi_init).*std(x),
+        an::Float64=1/length(x), sn::Vector{Float64}=ones(wi_init).*std(x),
          maxiteration::Int64=10000, tol=.001, taufixed=false)
 
     if ncomponent == 1

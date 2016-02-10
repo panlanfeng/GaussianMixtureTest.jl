@@ -1,3 +1,12 @@
+"""
+    asymptoticdistribution(x, wi, mu, sigmas);
+
+Simulate the asymptotic distribution of test statistic for `kstest`. 
+`nrep` is the number of random values to generate.
+`debuginfo` is whether to show the debug information.
+When number of components of null distribution is greater than 1, the test statistic has no closed form asymptotic distribution. When the null distribution is just normal, the asymptotic distribution is just `Chisq(2)`.
+
+"""
 function asymptoticdistribution(x::RealVector{Float64}, wi::Vector{Float64}, mu::Vector{Float64}, sigmas::Vector{Float64}; nrep::Int=10000, debuginfo::Bool=false)
 
     n = length(x)
@@ -98,7 +107,19 @@ function maxll_ctau(x::RealVector, C1::Int, wi_C1::Vector{Float64}, whichtosplit
     return(re[4])
     
 end
-   
+ 
+"""
+    kstest(x, C0)
+    
+Do the EM test under null Hypothesis of `C0` components.
+If rejected, then it suggest the true number of components is greater than `C0`.
+Optional arguments for `kstest`
+
+ - `vtau`: the finite set of `tau` value
+ - `ntrials`: the number of initial values to try
+ - `debuginfo`: whether show the debug information
+
+"""
 function kstest(x::RealVector{Float64}, C0::Int; vtau::Vector{Float64}=[.5,.3,.1;],
     ntrials::Int=25, debuginfo::Bool=false, tol::Real=0.001)
     

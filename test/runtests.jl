@@ -10,7 +10,7 @@ m = MixtureModel(map((u, v) -> Normal(u, v), mu_true, sigmas_true), wi_true)
 x = rand(m, 1000);
 asymptoticdistribution(x, wi_true, mu_true, sigmas_true, debuginfo=true);
 wi, mu, sigmas, ml = gmm(x, 2)
-kstest(x, 3)
+kstest(x, 2)
 
 
 # write your own tests here
