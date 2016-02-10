@@ -93,7 +93,15 @@ end
 
 
 #Estimate gaussian mixture parameters given the initial value of γ
-function gmm(x::Vector{Float64}, ncomponent::Int, wi_init::Vector{Float64}, mu_init::Vector{Float64}, sigmas_init::Vector{Float64}; whichtosplit::Int64=1, tau::Float64=.5, mu_lb::Vector{Float64}=-Inf.*ones(wi_init), mu_ub::Vector{Float64}=Inf.*ones(wi_init), an::Float64=0.25, sn::Vector{Float64}=ones(wi_init).*std(x), maxiter::Int64=10000, tol=.001, wifixed=false)
+function gmm(x::RealVector{Float64}, ncomponent::Int, 
+    wi_init::Vector{Float64}=ones(ncomponent)/ncomponent,
+     mu_init::Vector{Float64}=quantile(x, linspace(0, 1, ncomponent+2)[2:end-1]), 
+     sigmas_init::Vector{Float64}=ones(ncomponent).*std(x);
+      whichtosplit::Int64=1, tau::Float64=.5,
+       mu_lb::Vector{Float64}=-Inf.*ones(wi_init),
+        mu_ub::Vector{Float64}=Inf.*ones(wi_init), 
+        an::Float64=.25, sn::Vector{Float64}=ones(wi_init).*std(x),
+         maxiteration::Int64=10000, tol=.001, taufixed=false)
 
     if ncomponent == 1
         mu = [mean(x)]
@@ -102,9 +110,7 @@ function gmm(x::Vector{Float64}, ncomponent::Int, wi_init::Vector{Float64}, mu_i
         return([1.0], mu, sigmas, ml)
     end
     nF = length(x)
-    #ncomponent = length(wi_init)
     tau = min(tau, 1-tau)
-    # sn = var(x)
     wi = copy(wi_init)
     mu = copy(mu_init)
     sigmas = copy(sigmas_init)
@@ -116,7 +122,7 @@ function gmm(x::Vector{Float64}, ncomponent::Int, wi_init::Vector{Float64}, mu_i
     wi_divide_sigmas = zeros(wi)
     inv_2sigmas_sq = ones(sigmas) .* 1e20
 
-    if wifixed
+    if taufixed
         wi_tmp = wi[whichtosplit]+wi[whichtosplit+1]
         wi[whichtosplit] = wi_tmp*tau
         wi[whichtosplit+1] = wi_tmp*(1-tau)
@@ -124,7 +130,7 @@ function gmm(x::Vector{Float64}, ncomponent::Int, wi_init::Vector{Float64}, mu_i
     end
 
     pwi = ones(nF, ncomponent) ./ ncomponent
-    for iter_em in 1:maxiter
+    for iter_em in 1:maxiteration
         fill!(wi_divide_sigmas, 0.0)
         fill!(inv_2sigmas_sq, 0.0)
         for i in 1:length(wi)
@@ -155,7 +161,7 @@ function gmm(x::Vector{Float64}, ncomponent::Int, wi_init::Vector{Float64}, mu_i
             sigmas[j] = sqrt((wsum(pwi[:,j], (x .- mu[j]).^2) + 2 * an * sn[j]^2) / (sum(pwi[:,j]) + 2*an))
         end
 
-        if wifixed
+        if taufixed
             wi_tmp = wi[whichtosplit]+wi[whichtosplit+1]
             wi[whichtosplit] = wi_tmp*tau
             wi[whichtosplit+1] = wi_tmp*(1-tau)
@@ -168,6 +174,6 @@ function gmm(x::Vector{Float64}, ncomponent::Int, wi_init::Vector{Float64}, mu_i
     end
     m = MixtureModel(map((u, v) -> Normal(u, v), mu, sigmas), wi)
 
-    ml = sum(logpdf(m, x))# + sum(pn(sigmas, sn, an=an)) #+ log(1 - abs(1 - 2*tau))
+    ml = sum(logpdf(m, x)) + sum(pn(sigmas, sn, an=an)) #+ log(1 - abs(1 - 2*tau))
     return (wi, mu, sigmas, ml)
 end
