@@ -16,9 +16,9 @@ function asymptoticdistribution(x::RealVector{Float64}, wi::Vector{Float64}, mu:
     S_π = zeros(n, C-1)
     S_μσ = zeros(n, 2*C)
     S_λ = zeros(n, 2*C)
-    ll = logpdf(m, x)
+    ll = pdf(m, x)
     for i in 1:n, kcom in 1:C
-        llC[i, kcom] = logpdf(m.components[kcom], x[i])
+        llC[i, kcom] = pdf(m.components[kcom], x[i])
     end
 
     for kcom in 1:(C-1)
@@ -34,23 +34,27 @@ function asymptoticdistribution(x::RealVector{Float64}, wi::Vector{Float64}, mu:
         end
     end
     S_η = hcat(S_π, S_μσ)
-    debuginfo && println(round(sum(S_η, 1)./sqrt(n), 6))
+    debuginfo && println(round(S_η[1:5,:], 6))
+    debuginfo && println(round(S_λ[1:5,:], 6))
     I_η = S_η'*S_η./n
     I_λη = S_λ'*S_η./n
     I_λ = S_λ'*S_λ./n
     I_all = vcat(hcat(I_η, I_λη'), hcat(I_λη, I_λ))
-    D, V = eig(I_all)
-    debuginfo && println(D)
-    tol2 = maximum(abs(D)) * 1e-14
-    D[D.<tol2] = tol2
-    I_all = V*diagm(D)*V'
-    debuginfo && println(round(I_all, 6))
+    if 1/cond(I_all) < eps(Float64)
+        D, V = eig(I_all)
+        debuginfo && println(D)
+        tol2 = maximum(abs(D)) * 1e-14
+        D[D.<tol2] = tol2
+        I_all = V*diagm(D)*V'
+    end
+    debuginfo && println(round(cor(S_η), 6))
+    debuginfo && println(round(cor(S_λ), 6))
     I_λ_η = I_all[(3*C):(5*C-1), (3*C):(5*C-1)] - I_all[(3*C):(5*C-1), 1:(3*C-1)] * inv(I_all[1:(3*C-1), 1:(3*C-1)]) * I_all[1:(3*C-1),(3*C):(5*C-1)]
     debuginfo && println(round(I_λ_η, 6))
-    I_λ_η=(I_λ_η .+ I_λ_η')./2
+    #I_λ_η=(I_λ_η .+ I_λ_η')./2
     D, V = eig(I_λ_η)
-    debuginfo && println(D)
     D[D.<0.] = 0.
+    debuginfo && println(D)
     I_λ_η2 = V * diagm(sqrt(D)) * V'
     u = randn(nrep, 2*C) * I_λ_η2
     EM = zeros(nrep, C)
@@ -61,6 +65,7 @@ function asymptoticdistribution(x::RealVector{Float64}, wi::Vector{Float64}, mu:
     for i in 1:nrep
         T[i] = maximum(EM[i, :])
     end
+    debuginfo && println(EM[1:10,:])
     T
 end
 
