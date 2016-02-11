@@ -1,4 +1,4 @@
-using GaussianMixtureTest
+import GaussianMixtureTest
 using Distributions
 using KernelEstimator
 using RCall
@@ -6,29 +6,32 @@ using RCall
 mu_true = [-2.0858,-1.4879]
 wi_true = [0.0828,0.9172]
 sigmas_true = [0.6735,0.2931]
-
+n = 282
 m = MixtureModel(map((u, v) -> Normal(u, v), mu_true, sigmas_true), wi_true)
+#srand(35);x = rand(m, n);GaussianMixtureTest.kstest(x, 2)
 
 T1 = zeros(100)
 P = zeros(100)
 for b in 1:100
     srand(b)
-    x = rand(m, 500)
-    T1[b], P[b] = kstest(x, 2)
+    x = rand(m, n)
+    T1[b], P[b] = GaussianMixtureTest.kstest(x, 2)
     print(b,"->", T1[b], " | ")
 end
 
-x = rand(m, 500)
-Ttrue = asymptoticdistribution(x, wi_true, mu_true, sigmas_true)
+x = rand(m, n)
+wi,mu,sigmas= gmm(x, 2)
+Ttrue = GaussianMixtureTest.asymptoticdistribution(x, wi, mu, sigmas)
 
 xs = linspace(0.01, 14, 500)
-den1=kerneldensity(Ttrue, xeval=xs, kernel=gammakernel, lb=0.)
+den1=kerneldensity(Ttrue, xeval=xs, kernel=gammakernel, lb=0., h=.2)
 den2 = kerneldensity(T1, xeval=xs, kernel=gammakernel, lb=0.)
 
 
-@rput xs den1 den2 T1 P
+@rput xs den1 den2 T1 P;
 rprint(""" 
 hist(T1, breaks=15, freq=F, ylim=c(0, .4))
+rug(T1)
 lines(xs, den1, lwd=2)
 lines(xs, den2, lwd=2, col="blue")
 """)
@@ -39,6 +42,47 @@ hist(z, freq=F, xlim=c(-4,4))
 lines(density(z))
 curve(dnorm, -4, 4, col="red",add=T)
 NULL
+""")
+
+
+### The components
+
+import GaussianMixtureTest
+using Distributions
+using KernelEstimator
+using RCall
+
+mu_true = [log(1/0.779 - 1)/3 - 4.0, log(1/0.779 - 1)/3 + 1.0, log(1/0.779 - 1)/3 + 4.0;]
+wi_true = [.3, .4, .3]
+sigmas_true = [1.2, .8, .9]
+n = 282
+m = MixtureModel(map((u, v) -> Normal(u, v), mu_true, sigmas_true), wi_true)
+#srand(35);x = rand(m, n);GaussianMixtureTest.kstest(x, 2)
+
+T1 = zeros(100)
+P = zeros(100)
+for b in 1:100
+    srand(b)
+    x = rand(m, n)
+    T1[b], P[b] = GaussianMixtureTest.kstest(x, 3)
+    print(b,"->", T1[b], " | ")
+end
+
+x = rand(m, n)
+wi,mu,sigmas= gmm(x, 3)
+Ttrue = GaussianMixtureTest.asymptoticdistribution(x, wi, mu, sigmas)
+
+xs = linspace(0.01, 14, 500)
+den1=kerneldensity(Ttrue, xeval=xs, kernel=gammakernel, lb=0., h=.2)
+den2 = kerneldensity(T1, xeval=xs, kernel=gammakernel, lb=0.)
+
+
+@rput xs den1 den2 T1 P;
+rprint(""" 
+hist(T1, breaks=15, freq=F, ylim=c(0, .4))
+rug(T1)
+lines(xs, den1, lwd=2)
+lines(xs, den2, lwd=2, col="blue")
 """)
 
 
