@@ -120,7 +120,10 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
     if ncomponent == 1
         mu = [mean(x)]
         sigmas = [std(x)]
-        ml = sum(logpdf(Normal(mean(x), std(x)), x)) #+ sum(pn(sigmas, sn, an=an))
+        ml = loglikelihood(Normal(mean(x), std(x), x)) 
+        if pl
+            ml += sum(pn(sigmas, sn, an=an)) 
+        end
         return([1.0], mu, sigmas, ml)
     end
     n = length(x)
@@ -131,35 +134,56 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
     wi_old = copy(wi)
     mu_old = copy(mu)
     sigmas_old=copy(sigmas)
-    tmp_p=ones(ncomponent) / ncomponent
-    tmp_mu=zeros(ncomponent)
+
     wi_divide_sigmas = zeros(wi)
     inv_2sigmas_sq = ones(sigmas)
-    pwi = ones(n, ncomponent) ./ ncomponent
+    pwi = ones(n, ncomponent)
     xtmp = copy(x)
     
     for iter_em in 1:maxiteration
-        fill!(wi_divide_sigmas, 0.0)
-        fill!(inv_2sigmas_sq, 0.0)
-        for i in 1:length(wi)
-            wi_divide_sigmas[i] = wi[i]/sigmas[i]
-            inv_2sigmas_sq[i] = 0.5 / sigmas[i]^2
+
+        @inbounds for j in 1:length(wi)
+            wi_divide_sigmas[j] = wi[j]/sigmas[j]
+            inv_2sigmas_sq[j] = 0.5 / sigmas[j]^2
         end
+        
         for i in 1:n
-            for j in 1:ncomponent
-                tmp_mu[j] = -(mu[j] - x[i])^2 * inv_2sigmas_sq[j]
+            tmp = -Inf
+            @inbounds for j in 1:ncomponent
+                pwi[i, j] = -(mu[j] - x[i])^2 * inv_2sigmas_sq[j]
+                if tmp < pwi[i,j]
+                    tmp = pwi[i,j]
+                end
             end
-            ratiosumexp!(tmp_mu, wi_divide_sigmas, pwi, i, ncomponent)
+            #@inbounds tmp = maximum(pwi[i, :])
+            for j in 1:ncomponent
+                @inbounds pwi[i, j] -= tmp
+            end
+        end
+        Yeppp.exp!(pwi, pwi)
+
+        @inbounds for i in 1:n
+            tmp = 0.0
+            for j in 1:ncomponent
+                pwi[i, j] *= wi_divide_sigmas[j]
+                tmp += pwi[i, j]
+            end
+            for j in 1:ncomponent
+                pwi[i, j] /= tmp
+            end
         end
 
         copy!(wi_old, wi)
         copy!(mu_old, mu)
         copy!(sigmas_old, sigmas)
-        #println(wi, mu, sigmas, tmp_mu, wi_divide_sigmas)
+
         for j in 1:ncomponent
             colsum = sum(pwi[:, j])
             if colsum == 0.
-                error("Single point component found. NaN may appear. Try larger penalty an.")
+                wi[j] = 1/n
+                sigmas[j] *=2
+                continue
+                warn("Zero point component found. Auto increase its variance by a factor 2.")
             end
             wi[j] = colsum / n
             mu[j] = wsum(pwi[:,j], x) / colsum
@@ -168,7 +192,10 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
             sqr!(xtmp, xtmp, n)
             sigmas[j] = sqrt((wsum(pwi[:,j], xtmp) + 2 * an * sn[j]^2) / (colsum + 2*an))
         end
-
+        if any(isnan(wi))|| any(isnan(mu)) || any(isnan(sigmas))
+            println( wi, mu, sigmas)
+            error("NaN occur!")
+        end
         if taufixed
             wi_tmp = wi[whichtosplit]+wi[whichtosplit+1]
             wi[whichtosplit] = wi_tmp*tau

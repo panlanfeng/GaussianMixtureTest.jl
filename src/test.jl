@@ -74,7 +74,7 @@ function gmmrepeat(x::RealVector, C::Int; ntrials::Int=25,
     wi_init::Vector{Float64}=ones(C)./C, 
     mu_lb::Vector{Float64}=minimum(x).*ones(C),
      mu_ub::Vector{Float64}=maximum(x).*ones(C), 
-    sigmas_lb::Vector{Float64}=.01*std(x).*ones(C), 
+    sigmas_lb::Vector{Float64}=.1*std(x).*ones(C), 
     sigmas_ub::Vector{Float64}=2*std(x).*ones(C),
     taufixed::Bool=false, whichtosplit::Int=1, tau::Real=0.5, 
    sn::Vector{Float64}=std(x).*ones(C), an::Real=1/sqrt(length(x)), debuginfo::Bool=false, tol::Real=.001)
