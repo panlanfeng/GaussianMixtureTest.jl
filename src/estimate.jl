@@ -114,7 +114,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
       whichtosplit::Int64=1, tau::Float64=.5,
        mu_lb::Vector{Float64}=-Inf.*ones(wi_init),
         mu_ub::Vector{Float64}=Inf.*ones(wi_init), 
-        an::Float64=1/sqrt(length(x)), sn::Vector{Float64}=ones(ncomponent).*std(x),
+        an::Float64=1/length(x), sn::Vector{Float64}=ones(ncomponent).*std(x),
          maxiteration::Int64=10000, tol::Real=.001, taufixed::Bool=false, pl::Bool=true)
 
     if ncomponent == 1

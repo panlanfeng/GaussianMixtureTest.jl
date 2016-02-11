@@ -77,7 +77,7 @@ function gmmrepeat(x::RealVector, C::Int; ntrials::Int=25,
     sigmas_lb::Vector{Float64}=.1*std(x).*ones(C), 
     sigmas_ub::Vector{Float64}=2*std(x).*ones(C),
     taufixed::Bool=false, whichtosplit::Int=1, tau::Real=0.5, 
-   sn::Vector{Float64}=std(x).*ones(C), an::Real=1/sqrt(length(x)), debuginfo::Bool=false, tol::Real=.001)
+   sn::Vector{Float64}=std(x).*ones(C), an::Real=1/length(x), debuginfo::Bool=false, tol::Real=.001, pl::Bool=true)
    
     n = length(x)
     tau = min(tau, 1-tau)
@@ -112,7 +112,7 @@ function gmmrepeat(x::RealVector, C::Int; ntrials::Int=25,
     imax = mlperm[3*ntrials+imax]
 
     re=gmm(x, C, wi[:, imax], mu[:, imax], sigmas[:, imax],
-         maxiteration=2, an=an, sn=sn, tol=0., pl=false)
+         maxiteration=2, an=an, sn=sn, tol=0., pl=pl)
     debuginfo && println("Trial:", re)
     return(re)
 end
@@ -135,8 +135,7 @@ function kstest(x::RealVector{Float64}, C0::Int; vtau::Vector{Float64}=[.5,.3,.1
     C1 = C0+1
     n = length(x)
 
-    wi_init, mu_init, sigmas_init, ml_C0 = gmmrepeat(x, C0)
-    
+    wi_init, mu_init, sigmas_init, ml_C0 = gmmrepeat(x, C0, pl=false)
     debuginfo && println(wi_init, mu_init, sigmas_init, ml_C0)
     if C0 > 1
         trand=GaussianMixtureTest.asymptoticdistribution(x, wi_init, mu_init, sigmas_init)
