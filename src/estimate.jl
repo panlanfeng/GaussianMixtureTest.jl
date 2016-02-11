@@ -114,7 +114,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
       whichtosplit::Int64=1, tau::Float64=.5,
        mu_lb::Vector{Float64}=-Inf.*ones(wi_init),
         mu_ub::Vector{Float64}=Inf.*ones(wi_init), 
-        an::Float64=1/length(x), sn::Vector{Float64}=ones(wi_init).*std(x),
+        an::Float64=1/sqrt(length(x)), sn::Vector{Float64}=ones(ncomponent).*std(x),
          maxiteration::Int64=10000, tol=.001, taufixed=false)
 
     if ncomponent == 1
@@ -142,13 +142,8 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
         fill!(wi_divide_sigmas, 0.0)
         fill!(inv_2sigmas_sq, 0.0)
         for i in 1:length(wi)
-            if sigmas[i] < realmin(Float64)
-                wi_divide_sigmas[i] = 0.0
-                inv_2sigmas_sq[i] = wi[i]*realmax(Float64)
-            else
-                wi_divide_sigmas[i] = wi[i]/sigmas[i]
-                inv_2sigmas_sq[i] = 0.5 / sigmas[i]^2
-            end
+            wi_divide_sigmas[i] = wi[i]/sigmas[i]
+            inv_2sigmas_sq[i] = 0.5 / sigmas[i]^2
         end
         for i in 1:n
             for j in 1:ncomponent
@@ -160,9 +155,12 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
         copy!(wi_old, wi)
         copy!(mu_old, mu)
         copy!(sigmas_old, sigmas)
-
+        #println(wi, mu, sigmas, tmp_mu, wi_divide_sigmas)
         for j in 1:ncomponent
             colsum = sum(pwi[:, j])
+            if colsum == 0.
+                error("Single point component found. NaN may appear. Try larger penalty an.")
+            end
             wi[j] = colsum / n
             mu[j] = wsum(pwi[:,j], x) / colsum
             
