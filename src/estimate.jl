@@ -115,7 +115,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
        mu_lb::Vector{Float64}=-Inf.*ones(wi_init),
         mu_ub::Vector{Float64}=Inf.*ones(wi_init), 
         an::Float64=1/sqrt(length(x)), sn::Vector{Float64}=ones(ncomponent).*std(x),
-         maxiteration::Int64=10000, tol=.001, taufixed=false)
+         maxiteration::Int64=10000, tol::Real=.001, taufixed::Bool=false, pl::Bool=true)
 
     if ncomponent == 1
         mu = [mean(x)]
@@ -134,7 +134,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
     tmp_p=ones(ncomponent) / ncomponent
     tmp_mu=zeros(ncomponent)
     wi_divide_sigmas = zeros(wi)
-    inv_2sigmas_sq = ones(sigmas) .* 1e20
+    inv_2sigmas_sq = ones(sigmas)
     pwi = ones(n, ncomponent) ./ ncomponent
     xtmp = copy(x)
     
@@ -182,6 +182,9 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
     end
     m = MixtureModel(map((u, v) -> Normal(u, v), mu, sigmas), wi)
 
-    ml = sum(logpdf(m, x)) + sum(pn(sigmas, sn, an=an)) #+ log(1 - abs(1 - 2*tau))
+    ml = loglikelihood(m, x)# + sum(pn(sigmas, sn, an=an)) #+ log(1 - abs(1 - 2*tau))
+    if pl
+        ml += sum(pn(sigmas, sn, an=an)) 
+    end
     return (wi, mu, sigmas, ml)
 end
