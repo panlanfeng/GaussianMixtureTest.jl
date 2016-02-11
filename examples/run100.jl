@@ -8,7 +8,7 @@ wi_true = [0.0828,0.9172]
 sigmas_true = [0.6735,0.2931]
 n = 282
 m = MixtureModel(map((u, v) -> Normal(u, v), mu_true, sigmas_true), wi_true)
-#srand(35);x = rand(m, n);GaussianMixtureTest.kstest(x, 2)
+srand(35);x = rand(m, n);GaussianMixtureTest.kstest(x, 2)
 
 T1 = zeros(100)
 P = zeros(100)
@@ -20,11 +20,11 @@ for b in 1:100
 end
 
 x = rand(m, n)
-wi,mu,sigmas= gmm(x, 2)
+wi,mu,sigmas= GaussianMixtureTest.gmm(x, 2)
 Ttrue = GaussianMixtureTest.asymptoticdistribution(x, wi, mu, sigmas)
 
 xs = linspace(0.01, 14, 500)
-den1=kerneldensity(Ttrue, xeval=xs, kernel=gammakernel, lb=0., h=.2)
+den1=kerneldensity(Ttrue, xeval=xs, kernel=gammakernel, lb=0.)
 den2 = kerneldensity(T1, xeval=xs, kernel=gammakernel, lb=0.)
 
 
@@ -69,17 +69,17 @@ for b in 1:100
 end
 
 x = rand(m, n)
-wi,mu,sigmas= gmm(x, 3)
-Ttrue = GaussianMixtureTest.asymptoticdistribution(x, wi, mu, sigmas)
+wi,mu,sigmas= GaussianMixtureTest.gmm(x, 3)
+Ttrue = GaussianMixtureTest.asymptoticdistribution(x, wi, mu, sigmas);
 
-xs = linspace(0.01, 14, 500)
-den1=kerneldensity(Ttrue, xeval=xs, kernel=gammakernel, lb=0., h=.2)
-den2 = kerneldensity(T1, xeval=xs, kernel=gammakernel, lb=0.)
+xs = linspace(0.01, 14, 500);
+den1=kerneldensity(Ttrue, xeval=xs, kernel=gammakernel, lb=0.);
+den2 = kerneldensity(T1, xeval=xs, kernel=gammakernel, lb=0.);
 
 
 @rput xs den1 den2 T1 P;
 rprint(""" 
-hist(T1, breaks=15, freq=F, ylim=c(0, .4))
+hist(T1,freq=F, xlim=c(0, 15), ylim=c(0, .22))
 rug(T1)
 lines(xs, den1, lwd=2)
 lines(xs, den2, lwd=2, col="blue")
@@ -93,17 +93,16 @@ using Distributions
 using KernelEstimator
 using RCall
 
-mu_true = [-2.0858,-1.4879]
-wi_true = [0.0828,0.9172]
-sigmas_true = [0.6735,0.2931]
-
+mu_true = [log(1/0.779 - 1)/3 - 4.0, log(1/0.779 - 1)/3 + 1.0, log(1/0.779 - 1)/3 + 4.0;]
+wi_true = [.3, .4, .3]
+sigmas_true = [1.2, .8, .9]
 m = MixtureModel(map((u, v) -> Normal(u, v), mu_true, sigmas_true), wi_true)
 
 x = rand(m, 500)
-wi, mu, sigmas = GaussianMixtureTest.gmm(x, 2)
+wi, mu, sigmas = GaussianMixtureTest.gmm(x, 3)
 mhat = MixtureModel(map((u, v) -> Normal(u, v), mu, sigmas), wi)
 
-xs = linspace(-5, 2, 500)
+xs = linspace(-6, 5, 500)
 dentrue = pdf(m, xs)
 denhat = pdf(mhat, xs)
 
