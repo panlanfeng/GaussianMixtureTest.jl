@@ -141,8 +141,8 @@ function kstest(x::RealVector{Float64}, C0::Int; vtau::Vector{Float64}=[.5,.3,.1
     if debuginfo
         println("ml_C0=", ml_C0)
     end
-    minx = minimum(x)-2.0
-    maxx = maximum(x)+2.0
+    minx = minimum(x)
+    maxx = maximum(x)
 
     or = sortperm(mu_init)
     wi0 = wi_init[or]
