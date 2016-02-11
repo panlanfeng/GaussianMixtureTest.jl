@@ -16,17 +16,17 @@ function asymptoticdistribution(x::RealVector{Float64}, wi::Vector{Float64}, mu:
     S_π = zeros(n, C-1)
     S_μσ = zeros(n, 2*C)
     S_λ = zeros(n, 2*C)
-    ll = pdf(m, x)
+    ll = logpdf(m, x)
     for i in 1:n, kcom in 1:C
-        llC[i, kcom] = pdf(m.components[kcom], x[i])
+        llC[i, kcom] = logpdf(m.components[kcom], x[i])
     end
 
     for kcom in 1:(C-1)
-        S_π[:, kcom] = (llC[:, kcom] .- llC[:, C]) ./ ll
+        S_π[:, kcom] = exp(llC[:, kcom] .- ll) .- exp(llC[:, C] .- ll) #(llC[:, kcom] .- llC[:, C]) ./ ll
     end
     for i in 1:n
         for kcom in 1:C
-            llC[i, kcom] = wi[kcom] * llC[i, kcom] / ll[i]
+            llC[i, kcom] = exp(log(wi[kcom]) + llC[i, kcom] - ll[i])
             S_μσ[i, 2*kcom-1] = H1(x[i], mu[kcom], sigmas[kcom]) * llC[i, kcom]
             S_μσ[i, 2*kcom] = H2(x[i], mu[kcom], sigmas[kcom]) * llC[i, kcom]
             S_λ[i, 2*kcom-1] = H3(x[i], mu[kcom], sigmas[kcom]) * llC[i, kcom]
@@ -34,8 +34,9 @@ function asymptoticdistribution(x::RealVector{Float64}, wi::Vector{Float64}, mu:
         end
     end
     S_η = hcat(S_π, S_μσ)
-    debuginfo && println(round(S_η[1:5,:], 6))
-    debuginfo && println(round(S_λ[1:5,:], 6))
+    debuginfo && println(round(llC[1:5,:], 6))
+    debuginfo && println(sum(S_η, 1))
+    debuginfo && println(sum(S_λ, 1))
     I_η = S_η'*S_η./n
     I_λη = S_λ'*S_η./n
     I_λ = S_λ'*S_λ./n
