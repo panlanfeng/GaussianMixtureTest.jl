@@ -70,48 +70,51 @@ function asymptoticdistribution(x::RealVector{Float64}, wi::Vector{Float64}, mu:
     T
 end
 
-function maxll_ctau(x::RealVector, C1::Int, wi_C1::Vector{Float64}, whichtosplit::Int,
-   tau::Real, mu_lb::Vector{Float64}, mu_ub::Vector{Float64}, sigmas_lb::Vector{Float64}, sigmas_ub::Vector{Float64},
-   ntrials::Int, sn::Vector{Float64}, an::Real, debuginfo::Bool, tol::Real)
+function gmmrepeat(x::RealVector, C::Int; ntrials::Int=25,
+    wi_init::Vector{Float64}=ones(C)./C, 
+    mu_lb::Vector{Float64}=minimum(x).*ones(C),
+     mu_ub::Vector{Float64}=maximum(x).*ones(C), 
+    sigmas_lb::Vector{Float64}=.01*std(x).*ones(C), 
+    sigmas_ub::Vector{Float64}=2*std(x).*ones(C),
+    taufixed::Bool=false, whichtosplit::Int=1, tau::Real=0.5, 
+   sn::Vector{Float64}=std(x).*ones(C), an::Real=1/sqrt(length(x)), debuginfo::Bool=false, tol::Real=.001)
    
     n = length(x)
     tau = min(tau, 1-tau)
-
-    wi = repmat(wi_C1, 1, 4*ntrials)
-    mu = zeros(C1, 4*ntrials)
-    sigmas = ones(C1, 4*ntrials)
+    wi = repmat(wi_init, 1, 4*ntrials)
+    mu = zeros(C, 4*ntrials)
+    sigmas = ones(C, 4*ntrials)
     ml = -Inf .* ones(4*ntrials)
     for i in 1:4*ntrials
-        mu[:, i] = rand(C1) .* (mu_ub .- mu_lb) .+ mu_lb
-        sigmas[:, i] = rand(C1) .* (sigmas_ub .- sigmas_lb) .+ sigmas_lb
+        mu[:, i] = rand(C) .* (mu_ub .- mu_lb) .+ mu_lb
+        sigmas[:, i] = rand(C) .* (sigmas_ub .- sigmas_lb) .+ sigmas_lb
 
         wi[:, i], mu[:, i], sigmas[:, i], ml[i] =
-             gmm(x, C1, wi[:, i], mu[:, i], sigmas[:, i],
-             whichtosplit=whichtosplit, tau=tau,
+             gmm(x, C, wi[:, i], mu[:, i], sigmas[:, i],
+             taufixed=taufixed, whichtosplit=whichtosplit, tau=tau,
              mu_lb=mu_lb, mu_ub=mu_ub,
              maxiteration=100, sn=sn, an=an,
-             taufixed=true, tol=tol)
+             tol=tol)
     end
 
     mlperm = sortperm(ml)
     for j in 1:ntrials
         i = mlperm[4*ntrials+1 - j] # start from largest ml
         wi[:, i], mu[:, i], sigmas[:, i], ml[i] =
-            gmm(x, C1, wi[:, i], mu[:, i], sigmas[:, i],
-            whichtosplit=whichtosplit, tau=tau,
+            gmm(x, C, wi[:, i], mu[:, i], sigmas[:, i],
+            taufixed=taufixed, whichtosplit=whichtosplit, tau=tau,
             mu_lb=mu_lb, mu_ub=mu_ub,
-            sn=sn, an=an, taufixed=true,
+            sn=sn, an=an,
             tol=tol)
     end
 
     mlmax, imax = findmax(ml[mlperm[(3*ntrials+1):4*ntrials]])
     imax = mlperm[3*ntrials+imax]
 
-    re=gmm(x, C1, wi[:, imax], mu[:, imax], sigmas[:, imax],
-         maxiteration=3, an=an, sn=sn, tol=0.)
+    re=gmm(x, C, wi[:, imax], mu[:, imax], sigmas[:, imax],
+         maxiteration=2, an=an, sn=sn, tol=0., pl=false)
     debuginfo && println("Trial:", re)
-    return(re[4])
-    
+    return(re)
 end
  
 """
@@ -132,8 +135,8 @@ function kstest(x::RealVector{Float64}, C0::Int; vtau::Vector{Float64}=[.5,.3,.1
     C1 = C0+1
     n = length(x)
 
-    wi_init, mu_init, sigmas_init, ml_C0 = gmm(x, C0)
-
+    wi_init, mu_init, sigmas_init, ml_C0 = gmmrepeat(x, C0)
+    
     debuginfo && println(wi_init, mu_init, sigmas_init, ml_C0)
     if C0 > 1
         trand=GaussianMixtureTest.asymptoticdistribution(x, wi_init, mu_init, sigmas_init)
@@ -171,9 +174,12 @@ function kstest(x::RealVector{Float64}, C0::Int; vtau::Vector{Float64}=[.5,.3,.1
         wi_C1[whichtosplit] = wi_C1[whichtosplit]*vtau[i]
         wi_C1[whichtosplit+1] = wi_C1[whichtosplit+1]*(1-vtau[i])
 
-        lrv[i, whichtosplit] = maxll_ctau(x, C1, wi_C1, whichtosplit,
-           vtau[i], mu_lb, mu_ub, sigmas_lb, sigmas_ub,
-           ntrials, sigmas0[ind], an, debuginfo, tol)
+        lrv[i, whichtosplit] = gmmrepeat(x, C1,
+         ntrials=ntrials, wi_init=wi_C1,
+          mu_lb=mu_lb, mu_ub=mu_ub, 
+          sigmas_lb=sigmas_lb, sigmas_ub=sigmas_ub,
+             taufixed=true, whichtosplit=whichtosplit, tau=vtau[i], sn=sigmas0[ind],
+             an=an, debuginfo=debuginfo, tol=tol)[4]
        if debuginfo
            println(whichtosplit, " ", vtau[i], "->",
            lrv[i, whichtosplit])
