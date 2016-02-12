@@ -1,19 +1,4 @@
 
-function ratiosumexp!{T<:Real}(x::AbstractArray{T}, coef::AbstractArray{T}, s::AbstractMatrix{T}, irow::Int, ncomponent::Int)
-
-    u = maximum(x)
-    ssum=0.0
-    @inbounds for i in 1:ncomponent
-        tmp=coef[i]*exp(x[i] - u)
-        s[irow, i] = tmp
-        ssum += tmp
-    end
-    #ssum = sum(s[irow, :])
-    for i in 1:ncomponent
-        @inbounds s[irow, i] = s[irow, i] / ssum
-    end
-    nothing
-end
 function add!(res::AbstractArray{Float64}, x::AbstractArray{Float64}, y::Float64, n::Int64=length(x))
    for i in 1:n
        @inbounds res[i] = x[i] + y

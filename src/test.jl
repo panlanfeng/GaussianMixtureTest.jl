@@ -70,6 +70,19 @@ function asymptoticdistribution(x::RealVector{Float64}, wi::Vector{Float64}, mu:
     T
 end
 
+"""
+    gmmrepeat(x, C)
+
+Repeat the `gmm` for `ntrials` randomly generated starting values and pick the one with largest penalized likelihood.
+
+ - `wi_init`, `mu_lb`, `mu_ub`, `sigmas_lb`, `sigmas_ub`: specify how to generate the random starting values
+ - `taufixed`, `whichtosplit`, `tau`: whether keep the ratio between `wi[whichtosplit]` and `wi[whichtosplit]+wi[whichtosplit+1]` fixed at a constant `tau`.
+ - `sn` and `an`: the penalty
+ - `debuginfo` and `tol`: whether print the debug information and the convergence critera
+ - `pl`: wheter the penalty on `sigmas` be included in the log likelihood in the final two EM steps. Note that the starting value with largest penalized log likelihood is picked, but the penalty term should not be included in the likelihood ratio
+ - `pa`: whether to add the penalty on `tau` be included in likelihood. Better to be `true` since the more `tau` values we try the larger the test statistic
+
+"""
 function gmmrepeat(x::RealVector, C::Int; ntrials::Int=25,
     wi_init::Vector{Float64}=ones(C)./C, 
     mu_lb::Vector{Float64}=minimum(x).*ones(C),
@@ -124,8 +137,8 @@ Do the EM test under null Hypothesis of `C0` components.
 If rejected, then it suggest the true number of components is greater than `C0`.
 Optional arguments for `kstest`
 
- - `vtau`: the finite set of `tau` value
- - `ntrials`: the number of initial values to try
+ - `vtau`: the finite set of `tau` value, default to try 0.5 only
+ - `ntrials`: the number of initial values to try, default to be 25
  - `debuginfo`: whether show the debug information
 
 """

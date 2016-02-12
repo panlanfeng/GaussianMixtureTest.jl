@@ -105,6 +105,9 @@ Optional arguments of `gmm`:
  - `taufixed`: for `kstest`, whether fix the `tau` value
  - `whichtosplit` and `tau`: for `kstest`, which component to split and the `split` proportion
  - `mu_lb` and `mu_ub` for `kstest`, the lower and upper limits of components means
+ - `pl`: wheter the penalty on `sigmas` be included in the log likelihood in the final two EM steps. Note that the starting value with largest penalized log likelihood is picked, but the penalty term should not be included in the likelihood ratio
+ - `pa`: whether to add the penalty on `tau` be included in likelihood. Better to be `true` since the more `tau` values we try the larger the test statistic
+
     
 """
 function gmm(x::RealVector{Float64}, ncomponent::Int, 
