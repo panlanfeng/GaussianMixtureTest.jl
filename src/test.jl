@@ -80,7 +80,7 @@ Repeat the `gmm` for `ntrials` randomly generated starting values and pick the o
  - `sn` and `an`: the penalty
  - `debuginfo` and `tol`: whether print the debug information and the convergence critera
  - `pl`: wheter the penalty on `sigmas` be included in the log likelihood in the final two EM steps. Note that the starting value with largest penalized log likelihood is picked, but the penalty term should not be included in the likelihood ratio
- - `pa`: whether to add the penalty on `tau` be included in likelihood. Better to be `true` since the more `tau` values we try the larger the test statistic
+ - `ptau`: whether to add the penalty on `tau` be included in likelihood. Better to be `true` since the more `tau` values we try the larger the test statistic
 
 """
 function gmmrepeat(x::RealVector, C::Int; ntrials::Int=25,
@@ -90,7 +90,7 @@ function gmmrepeat(x::RealVector, C::Int; ntrials::Int=25,
     sigmas_lb::Vector{Float64}=.1*std(x).*ones(C), 
     sigmas_ub::Vector{Float64}=2*std(x).*ones(C),
     taufixed::Bool=false, whichtosplit::Int=1, tau::Real=0.5, 
-   sn::Vector{Float64}=std(x).*ones(C), an::Real=1/length(x), debuginfo::Bool=false, tol::Real=.001, pl::Bool=false, pa::Bool=false)
+   sn::Vector{Float64}=std(x).*ones(C), an::Real=1/length(x), debuginfo::Bool=false, tol::Real=.001, pl::Bool=false, ptau::Bool=false)
    
     n = length(x)
     tau = min(tau, 1-tau)
@@ -107,7 +107,7 @@ function gmmrepeat(x::RealVector, C::Int; ntrials::Int=25,
              taufixed=taufixed, whichtosplit=whichtosplit, tau=tau,
              mu_lb=mu_lb, mu_ub=mu_ub,
              maxiteration=100, sn=sn, an=an,
-             tol=tol, pl=true, pa=false)
+             tol=tol, pl=true, ptau=false)
     end
 
     mlperm = sortperm(ml)
@@ -118,14 +118,14 @@ function gmmrepeat(x::RealVector, C::Int; ntrials::Int=25,
             taufixed=taufixed, whichtosplit=whichtosplit, tau=tau,
             mu_lb=mu_lb, mu_ub=mu_ub,
             sn=sn, an=an,
-            tol=tol, pl=true, pa=false)
+            tol=tol, pl=true, ptau=false)
     end
 
     mlmax, imax = findmax(ml[mlperm[(3*ntrials+1):4*ntrials]])
     imax = mlperm[3*ntrials+imax]
 
     re=gmm(x, C, wi[:, imax], mu[:, imax], sigmas[:, imax],
-         maxiteration=2, an=an, sn=sn, tol=0., pl=pl, pa=pa, whichtosplit=whichtosplit)
+         maxiteration=2, an=an, sn=sn, tol=0., pl=pl, ptau=ptau, whichtosplit=whichtosplit)
     debuginfo && println("Trial:", re)
     return(re)
 end
@@ -143,12 +143,12 @@ Optional arguments for `kstest`
 
 """
 function kstest(x::RealVector{Float64}, C0::Int; vtau::Vector{Float64}=[.5;],
-    ntrials::Int=25, debuginfo::Bool=false, tol::Real=0.001,pa::Bool=true)
+    ntrials::Int=25, debuginfo::Bool=false, tol::Real=0.001,ptau::Bool=true)
     
     C1 = C0+1
     n = length(x)
 
-    wi_init, mu_init, sigmas_init, ml_C0 = gmmrepeat(x, C0, pl=false, pa=false)
+    wi_init, mu_init, sigmas_init, ml_C0 = gmmrepeat(x, C0, pl=false, ptau=false)
     debuginfo && println(wi_init, mu_init, sigmas_init, ml_C0)
     if C0 > 1
         trand=GaussianMixtureTest.asymptoticdistribution(x, wi_init, mu_init, sigmas_init)
@@ -191,7 +191,7 @@ function kstest(x::RealVector{Float64}, C0::Int; vtau::Vector{Float64}=[.5;],
           mu_lb=mu_lb, mu_ub=mu_ub, 
           sigmas_lb=sigmas_lb, sigmas_ub=sigmas_ub,
              taufixed=true, whichtosplit=whichtosplit, tau=vtau[i], sn=sigmas0[ind],
-             an=an, debuginfo=debuginfo, tol=tol, pl=false, pa=pa)[4]
+             an=an, debuginfo=debuginfo, tol=tol, pl=false, ptau=ptau)[4]
        if debuginfo
            println(whichtosplit, " ", vtau[i], "->",
            lrv[i, whichtosplit])

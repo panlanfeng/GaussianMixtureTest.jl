@@ -106,7 +106,7 @@ Optional arguments of `gmm`:
  - `whichtosplit` and `tau`: for `kstest`, which component to split and the `split` proportion
  - `mu_lb` and `mu_ub` for `kstest`, the lower and upper limits of components means
  - `pl`: wheter the penalty on `sigmas` be included in the log likelihood in the final two EM steps. Note that the starting value with largest penalized log likelihood is picked, but the penalty term should not be included in the likelihood ratio
- - `pa`: whether to add the penalty on `tau` be included in likelihood. Better to be `true` since the more `tau` values we try the larger the test statistic
+ - `ptau`: whether to add the penalty on `tau` be included in likelihood. Better to be `true` since the more `tau` values we try the larger the test statistic
 
     
 """
@@ -118,7 +118,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
        mu_lb::Vector{Float64}=-Inf.*ones(wi_init),
         mu_ub::Vector{Float64}=Inf.*ones(wi_init), 
         an::Float64=1/length(x), sn::Vector{Float64}=ones(ncomponent).*std(x),
-         maxiteration::Int64=10000, tol::Real=.001, taufixed::Bool=false, pl::Bool=true, pa::Bool=false)
+         maxiteration::Int64=10000, tol::Real=.001, taufixed::Bool=false, pl::Bool=true, ptau::Bool=false)
 
     if ncomponent == 1
         mu = [mean(x)]
@@ -216,7 +216,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
     if pl
         ml += sum(pn(sigmas, sn, an=an)) 
     end
-    if pa
+    if ptau
         tau2 = wi[whichtosplit] / (wi[whichtosplit]+wi[whichtosplit+1])
         ml += log(1 - abs(1 - 2*tau2))
     end
