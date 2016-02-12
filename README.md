@@ -18,32 +18,12 @@ To install this package, run
 
     Pkg.clone("https://github.com/panlanfeng/GaussianMixtureTest.jl.git")
 
-The major functions are `gmm`, `asymptoticdistribution` and `kstest`. `gmm` estimates the parameters via EM algorithm. `asymptoticdistribution` simulates the asymptotic distribution of the test statistic when the number of components is greater than 2. `kstest` conducts the Kasahara-Shimotsu test. 
+The major functions are `gmm`, `gmmrepeat`,`asymptoticdistribution` and `kstest`. `gmm` estimates the parameters via EM algorithm. `gmmrepeat` repeat `gmm` for multiple starting values. `asymptoticdistribution` simulates the asymptotic distribution of the test statistic when the number of components is greater than 2. `kstest` conducts the Kasahara-Shimotsu test. 
 
 See also the usage by running
 
     ?gmm
 
-
-## Optional Arguments
-
-There are several optional arguments for `gmm`
-
- - `wi_init` `mu_init` and `sigmas_init`: the initial values
- - `maxiteration`: the number of iterations
- - `tol`: the tolerance of convergence criteria
- - `an` and `sn`: the penalty weight and variance term
- - `taufixed`: for `kstest`, whether fix the `tau` value
- - `whichtosplit` and `tau`: for `kstest`, which component to split and the `split` proportion
- - `mu_lb` and `mu_ub` for `kstest`, the lower and upper limits of components means
-    
-The optional arguments for `kstest`
-
- - `vtau`: the finite set of `tau` value
- - `ntrials`: the number of initial values to try
- - `debuginfo`: whether show the debug information
-
-The `npre` of `asymptoticdistribution` means how many random values to generate.
 
 ## Examples
 
