@@ -115,7 +115,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
        mu_lb::Vector{Float64}=-Inf.*ones(wi_init),
         mu_ub::Vector{Float64}=Inf.*ones(wi_init), 
         an::Float64=1/length(x), sn::Vector{Float64}=ones(ncomponent).*std(x),
-         maxiteration::Int64=10000, tol::Real=.001, taufixed::Bool=false, pl::Bool=true)
+         maxiteration::Int64=10000, tol::Real=.001, taufixed::Bool=false, pl::Bool=true, pa::Bool=false)
 
     if ncomponent == 1
         mu = [mean(x)]
@@ -212,6 +212,10 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
     ml = loglikelihood(m, x)# + sum(pn(sigmas, sn, an=an)) #+ log(1 - abs(1 - 2*tau))
     if pl
         ml += sum(pn(sigmas, sn, an=an)) 
+    end
+    if pa
+        tau2 = wi[whichtosplit] / (wi[whichtosplit]+wi[whichtosplit+1])
+        ml += log(1 - abs(1 - 2*tau2))
     end
     return (wi, mu, sigmas, ml)
 end
