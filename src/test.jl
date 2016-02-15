@@ -170,9 +170,10 @@ function kstest(x::RealVector{Float64}, C0::Int; vtau::Vector{Float64}=[.5;],
     lrv = zeros(length(vtau), C0)
     for whichtosplit in 1:C0, i in 1:length(vtau)
         ind = [1:whichtosplit, whichtosplit:C0;]
-        if C1==2
-            mu_lb = minx .* ones(2)
-            mu_ub = maxx .* ones(2)
+        if 
+            C1==2
+            mu_lb = minx .* ones(C1)
+            mu_ub = maxx .* ones(C1)
         elseif C1>2
             mu_lb = [minx, (mu0[1:(C0-1)] .+ mu0[2:C0])./2;]
             mu_ub = [(mu0[1:(C0-1)] .+ mu0[2:C0])./2, maxx;]
