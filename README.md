@@ -13,7 +13,7 @@ In addition the typical EM algorithm may fail to give a consistent estimate of G
 
 To install this package, run
 
-    Pkg.clone("https://github.com/panlanfeng/GaussianMixtureTest.jl.git")
+    Pkg.add("GaussianMixtureTest")
 
 The major functions are `gmm`, `gmmrepeat`,`asymptoticdistribution` and `kstest`. `gmm` estimates the parameters via EM algorithm. `gmmrepeat` repeat `gmm` for multiple starting values. `asymptoticdistribution` simulates the asymptotic distribution of the test statistic when the number of components is greater than 2. `kstest` conducts the Kasahara-Shimotsu test. 
 
