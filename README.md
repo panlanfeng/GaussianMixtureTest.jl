@@ -8,9 +8,6 @@ This package follows the method of [3] but with no regression covariates. Note t
 
 In addition the typical EM algorithm may fail to give a consistent estimate of Gaussian Mixture parameters. This package still uses EM but add a penalty term on the log likelihood which ensures the consistency [2]. 
 
-## Warning
-
-For this method to be valid, a stringent condition (Proposition 6 of [3]) on the true variance is required.
 
 ## Usage
 
