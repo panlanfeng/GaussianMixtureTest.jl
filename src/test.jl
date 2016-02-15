@@ -83,24 +83,48 @@ Repeat the `gmm` for `ntrials` randomly generated starting values and pick the o
  - `ptau`: whether to add the penalty on `tau` be included in likelihood. Better to be `true` since the more `tau` values we try the larger the test statistic
 
 """
-function gmmrepeat(x::RealVector, C::Int; ntrials::Int=25,
-    wi_init::Vector{Float64}=ones(C)./C, 
-    mu_lb::Vector{Float64}=minimum(x).*ones(C),
-     mu_ub::Vector{Float64}=maximum(x).*ones(C), 
-    sigmas_lb::Vector{Float64}=.1*std(x).*ones(C), 
-    sigmas_ub::Vector{Float64}=2*std(x).*ones(C),
+function gmmrepeat(x::RealVector, C::Int, 
+    wi_init::Vector{Float64}, 
+    mu_init::Vector{Float64},
+    sigmas_init::Vector{Float64};
+    ntrials::Int=25,
     taufixed::Bool=false, whichtosplit::Int=1, tau::Real=0.5, 
    sn::Vector{Float64}=std(x).*ones(C), an::Real=1/length(x), debuginfo::Bool=false, tol::Real=.001, pl::Bool=false, ptau::Bool=false)
    
     n = length(x)
     tau = min(tau, 1-tau)
+    mu_lb = minimum(x) .* ones(C)
+    mu_ub = maximum(x) .* ones(C)
+    if taufixed && C>2
+        for kcom in 1:(C-1)
+            tmp = (mu_init[kcom+1]*(wi_init[kcom+1])^.25 +mu_init[kcom]*(wi_init[kcom])^.25) / ((wi_init[kcom+1])^.25+(wi_init[kcom])^.25)
+            mu_lb[kcom+1] = tmp
+            mu_ub[kcom] = tmp
+        end
+        mu_lb[whichtosplit+1]=mu_lb[whichtosplit]
+        mu_ub[whichtosplit]=mu_ub[whichtosplit+1]
+    end
+    debuginfo && println(mu_lb, mu_ub)
+    sigmas_lb = 0.25 .* sigmas_init
+    sigmas_ub = 2 .* sigmas_init
+
+    if taufixed
+        tmp = wi_init[whichtosplit] + wi_init[whichtosplit+1]
+        wi_init[whichtosplit] = tmp*tau
+        wi_init[whichtosplit+1] = tmp*(1-tau)
+        mu_init[whichtosplit] -= 1e-3 
+    end
+
     wi = repmat(wi_init, 1, 4*ntrials)
-    mu = zeros(C, 4*ntrials)
-    sigmas = ones(C, 4*ntrials)
+    mu = repmat(mu_init, 1, 4*ntrials)
+    sigmas = repmat(sigmas_init, 1, 4*ntrials)
     ml = -Inf .* ones(4*ntrials)
     for i in 1:4*ntrials
-        mu[:, i] = rand(C) .* (mu_ub .- mu_lb) .+ mu_lb
-        sigmas[:, i] = rand(C) .* (sigmas_ub .- sigmas_lb) .+ sigmas_lb
+        #set the first initial value as mu_init, sigmas_init
+        if i >= 2
+            mu[:, i] = rand(C) .* (mu_ub .- mu_lb) .+ mu_lb
+            sigmas[:, i] = rand(C) .* (sigmas_ub .- sigmas_lb) .+ sigmas_lb
+        end
 
         wi[:, i], mu[:, i], sigmas[:, i], ml[i] =
              gmm(x, C, wi[:, i], mu[:, i], sigmas[:, i],
@@ -148,7 +172,8 @@ function kstest(x::RealVector{Float64}, C0::Int; vtau::Vector{Float64}=[.5;],
     C1 = C0+1
     n = length(x)
 
-    wi_init, mu_init, sigmas_init, ml_C0 = gmmrepeat(x, C0, pl=false, ptau=false)
+    wi_init, mu_init, sigmas_init, ml_C0 = gmm(x, C0)
+    wi_init, mu_init, sigmas_init, ml_C0 = gmmrepeat(x, C0, wi_init, mu_init, sigmas_init, pl=false, ptau=false, an=1/n)
     debuginfo && println(wi_init, mu_init, sigmas_init, ml_C0)
     if C0 > 1
         trand=GaussianMixtureTest.asymptoticdistribution(x, wi_init, mu_init, sigmas_init)
@@ -159,40 +184,26 @@ function kstest(x::RealVector{Float64}, C0::Int; vtau::Vector{Float64}=[.5;],
     end
     minx = minimum(x)
     maxx = maximum(x)
-
     or = sortperm(mu_init)
     wi0 = wi_init[or]
     mu0 = mu_init[or]
     sigmas0 = sigmas_init[or]
-
     an = decidepenalty(wi0, mu0, sigmas0, n)
     lr = 0.0
     lrv = zeros(length(vtau), C0)
     for whichtosplit in 1:C0, i in 1:length(vtau)
         ind = [1:whichtosplit, whichtosplit:C0;]
-        if 
-            C1==2
-            mu_lb = minx .* ones(C1)
-            mu_ub = maxx .* ones(C1)
-        elseif C1>2
-            mu_lb = [minx, (mu0[1:(C0-1)] .+ mu0[2:C0])./2;]
-            mu_ub = [(mu0[1:(C0-1)] .+ mu0[2:C0])./2, maxx;]
-            mu_lb = mu_lb[ind]
-            mu_ub = mu_ub[ind]
-        end
-        sigmas_lb = 0.25 .* sigmas0[ind]
-        sigmas_ub = 2 .* sigmas0[ind]
 
         wi_C1 = wi0[ind]
         wi_C1[whichtosplit] = wi_C1[whichtosplit]*vtau[i]
         wi_C1[whichtosplit+1] = wi_C1[whichtosplit+1]*(1-vtau[i])
 
         lrv[i, whichtosplit] = gmmrepeat(x, C1,
-         ntrials=ntrials, wi_init=wi_C1,
-          mu_lb=mu_lb, mu_ub=mu_ub, 
-          sigmas_lb=sigmas_lb, sigmas_ub=sigmas_ub,
-             taufixed=true, whichtosplit=whichtosplit, tau=vtau[i], sn=sigmas0[ind],
-             an=an, debuginfo=debuginfo, tol=tol, pl=false, ptau=ptau)[4]
+         wi_C1, mu0[ind], sigmas0[ind],
+         ntrials=ntrials, 
+         taufixed=true, whichtosplit=whichtosplit, tau=vtau[i], 
+         sn=sigmas0[ind], an=an, 
+         debuginfo=debuginfo, tol=tol, pl=false, ptau=ptau)[4]
        if debuginfo
            println(whichtosplit, " ", vtau[i], "->",
            lrv[i, whichtosplit])
