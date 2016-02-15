@@ -185,8 +185,8 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
             if colsum == 0.
                 wi[j] = 1/n
                 sigmas[j] *=2
+                warn("Empty component occur at iteration $(iter_em). Auto increase its variance by a factor 2. wi=$(wi), mu=$(mu), sigmas=$(sigmas)")
                 continue
-                warn("Zero point component found. Auto increase its variance by a factor 2.")
             end
             wi[j] = colsum / n
             mu[j] = wsum(pwi[:,j], x) / colsum
@@ -194,6 +194,10 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
             add!(xtmp, x, -mu[j], n)
             sqr!(xtmp, xtmp, n)
             sigmas[j] = sqrt((wsum(pwi[:,j], xtmp) + 2 * an * sn[j]^2) / (colsum + 2*an))
+        end
+        tmp = sum(wi)
+        for j in 1:ncomponent
+            wi[j] /= tmp
         end
         if any(isnan(wi))|| any(isnan(mu)) || any(isnan(sigmas))
             println( wi, mu, sigmas)
