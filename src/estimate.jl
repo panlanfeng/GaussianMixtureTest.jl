@@ -226,3 +226,48 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
     end
     return (wi, mu, sigmas, ml)
 end
+
+function confidenceinterval(x::RealVector{Float64}, wi::Vector{Float64}, mu::Vector{Float64}, sigmas::Vector{Float64}; confidencelevel::Real=0.9, debuginfo::Bool=false)
+
+    n = length(x)
+    C = length(wi)
+    m = MixtureModel(map((u, v) -> Normal(u, v), mu, sigmas), wi)
+    llC = zeros(n, C)
+    S_π = zeros(n, C-1)
+    S_μσ = zeros(n, 2*C)
+    S_λ = zeros(n, 2*C)
+    ll = logpdf(m, x)
+    for i in 1:n, kcom in 1:C
+        llC[i, kcom] = logpdf(m.components[kcom], x[i])
+    end
+
+    for kcom in 1:(C-1)
+        S_π[:, kcom] = exp(llC[:, kcom] .- ll) .- exp(llC[:, C] .- ll) #(llC[:, kcom] .- llC[:, C]) ./ ll
+    end
+    for i in 1:n
+        for kcom in 1:C
+            llC[i, kcom] = exp(log(wi[kcom]) + llC[i, kcom] - ll[i])
+            S_μσ[i, 2*kcom-1] = H1(x[i], mu[kcom], sigmas[kcom]) * llC[i, kcom]
+            S_μσ[i, 2*kcom] = H2(x[i], mu[kcom], sigmas[kcom]) * llC[i, kcom]
+            S_λ[i, 2*kcom-1] = H3(x[i], mu[kcom], sigmas[kcom]) * llC[i, kcom]
+            S_λ[i, 2*kcom] = H4(x[i], mu[kcom], sigmas[kcom]) * llC[i, kcom]
+        end
+    end
+    S_η = hcat(S_π, S_μσ)
+    debuginfo && println(round(llC[1:5,:], 6))
+    debuginfo && println(sum(S_η, 1))
+    debuginfo && println(sum(S_λ, 1))
+    I_η = S_η'*S_η./n
+    if 1/cond(I_η) < eps(Float64)
+        warn("Information Matrix is singular!")
+        D, V = eig(I_η)
+        debuginfo && println(D)
+        tol2 = maximum(abs(D)) * 1e-14
+        D[D.<tol2] = tol2
+        I_η = V*diagm(D)*V'
+    end
+    shat = sqrt(diag(inv(I_η))./n)
+    println("Parameter Standard Deviation: ", shat)
+    tmp = quantile(Normal(), 1-(1-confidencelevel) / 2 )
+    zip([wi[1:(C-1)], mu, sigmas;] .- tmp.*shat, [wi[1:(C-1)], mu, sigmas;] .+ tmp.*shat) |> collect
+end
