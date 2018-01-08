@@ -88,7 +88,7 @@ function omega123(wi, mu, sigmas)
 end	# end function omega.123
 
 function stopRule(pa::Vector, pa_old::Vector; tol=.005)
-    maximum(abs(pa .- pa_old)./(abs(pa).+.001)) < tol
+    maximum(abs.(pa .- pa_old)./(abs.(pa).+.001)) < tol
 end
 
 """
@@ -108,24 +108,24 @@ Optional arguments of `gmm`:
  - `pl`: wheter the penalty on `sigmas` be included in the log likelihood in the final two EM steps. Note that the starting value with largest penalized log likelihood is picked, but the penalty term should not be included in the likelihood ratio
  - `ptau`: whether to add the penalty on `tau` be included in likelihood. Better to be `true` since the more `tau` values we try the larger the test statistic
 
-    
+
 """
-function gmm(x::RealVector{Float64}, ncomponent::Int, 
+function gmm(x::RealVector{Float64}, ncomponent::Int,
     wi_init::Vector{Float64}=ones(ncomponent)/ncomponent,
-     mu_init::Vector{Float64}=quantile(x, linspace(0, 1, ncomponent+2)[2:end-1]), 
+     mu_init::Vector{Float64}=quantile(x, linspace(0, 1, ncomponent+2)[2:end-1]),
      sigmas_init::Vector{Float64}=ones(ncomponent).*std(x);
       whichtosplit::Int64=1, tau::Float64=.5,
        mu_lb::Vector{Float64}=-Inf.*ones(wi_init),
-        mu_ub::Vector{Float64}=Inf.*ones(wi_init), 
+        mu_ub::Vector{Float64}=Inf.*ones(wi_init),
         an::Float64=1/length(x), sn::Vector{Float64}=ones(ncomponent).*std(x),
          maxiteration::Int64=10000, tol::Real=.001, taufixed::Bool=false, pl::Bool=true, ptau::Bool=false)
 
     if ncomponent == 1
         mu = [mean(x)]
         sigmas = [std(x)]
-        ml = loglikelihood(Normal(mean(x), std(x)), x) 
+        ml = loglikelihood(Normal(mean(x), std(x)), x)
         if pl
-            ml += sum(pn(sigmas, sn, an=an)) 
+            ml += sum(pn(sigmas, sn, an=an))
         end
         return([1.0], mu, sigmas, ml)
     end
@@ -142,14 +142,14 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
     inv_2sigmas_sq = ones(sigmas)
     pwi = ones(n, ncomponent)
     xtmp = copy(x)
-    
+
     for iter_em in 1:maxiteration
 
         @inbounds for j in 1:length(wi)
             wi_divide_sigmas[j] = wi[j]/sigmas[j]
             inv_2sigmas_sq[j] = 0.5 / sigmas[j]^2
         end
-        
+
         for i in 1:n
             tmp = -Inf
             @inbounds for j in 1:ncomponent
@@ -190,7 +190,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
             end
             wi[j] = colsum / n
             mu[j] = wsum(pwi[:,j], x) / colsum
-            
+
             add!(xtmp, x, -mu[j], n)
             sqr!(xtmp, xtmp, n)
             sigmas[j] = sqrt((wsum(pwi[:,j], xtmp) + 2 * an * sn[j]^2) / (colsum + 2*an))
@@ -199,7 +199,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
         for j in 1:ncomponent
             wi[j] /= tmp
         end
-        if any(isnan(wi))|| any(isnan(mu)) || any(isnan(sigmas))
+        if any(isnan.(wi))|| any(isnan.(mu)) || any(isnan.(sigmas))
             println( wi, mu, sigmas)
             error("NaN occur!")
         end
@@ -207,7 +207,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
             wi_tmp = wi[whichtosplit]+wi[whichtosplit+1]
             wi[whichtosplit] = wi_tmp*tau
             wi[whichtosplit+1] = wi_tmp*(1-tau)
-            mu = min(max(mu, mu_lb), mu_ub)
+            mu = min.(max.(mu, mu_lb), mu_ub)
         end
 
         if stopRule(vcat(wi, mu, sigmas), vcat(wi_old, mu_old, sigmas_old), tol=tol)
@@ -218,7 +218,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
 
     ml = loglikelihood(m, x)# + sum(pn(sigmas, sn, an=an)) #+ log(1 - abs(1 - 2*tau))
     if pl
-        ml += sum(pn(sigmas, sn, an=an)) 
+        ml += sum(pn(sigmas, sn, an=an))
     end
     if ptau
         tau2 = wi[whichtosplit] / (wi[whichtosplit]+wi[whichtosplit+1])
@@ -242,7 +242,7 @@ function confidenceinterval(x::RealVector{Float64}, wi::Vector{Float64}, mu::Vec
     end
 
     for kcom in 1:(C-1)
-        S_π[:, kcom] = exp(llC[:, kcom] .- ll) .- exp(llC[:, C] .- ll) #(llC[:, kcom] .- llC[:, C]) ./ ll
+        S_π[:, kcom] = exp.(llC[:, kcom] .- ll) .- exp.(llC[:, C] .- ll) #(llC[:, kcom] .- llC[:, C]) ./ ll
     end
     for i in 1:n
         for kcom in 1:C
@@ -266,7 +266,7 @@ function confidenceinterval(x::RealVector{Float64}, wi::Vector{Float64}, mu::Vec
         D[D.<tol2] = tol2
         I_η = V*diagm(D)*V'
     end
-    shat = sqrt(diag(inv(I_η))./n)
+    shat = sqrt.(diag(inv(I_η))./n)
     println("Parameter Standard Deviation: ", shat)
     tmp = quantile(Normal(), 1-(1-confidencelevel) / 2 )
     zip([wi[1:(C-1)], mu, sigmas;] .- tmp.*shat, [wi[1:(C-1)], mu, sigmas;] .+ tmp.*shat) |> collect

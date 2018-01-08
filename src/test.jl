@@ -1,7 +1,7 @@
 """
     asymptoticdistribution(x, wi, mu, sigmas);
 
-Simulate the asymptotic distribution of test statistic for `kstest`. 
+Simulate the asymptotic distribution of test statistic for `kstest`.
 `nrep` is the number of random values to generate.
 `debuginfo` is whether to show the debug information.
 When number of components of null distribution is greater than 1, the test statistic has no closed form asymptotic distribution. When the null distribution is just normal, the asymptotic distribution is just `Chisq(2)`.
@@ -16,13 +16,13 @@ function asymptoticdistribution(x::RealVector{Float64}, wi::Vector{Float64}, mu:
     S_π = zeros(n, C-1)
     S_μσ = zeros(n, 2*C)
     S_λ = zeros(n, 2*C)
-    ll = logpdf(m, x)
+    ll = logpdf.(m, x)
     for i in 1:n, kcom in 1:C
         llC[i, kcom] = logpdf(m.components[kcom], x[i])
     end
 
     for kcom in 1:(C-1)
-        S_π[:, kcom] = exp(llC[:, kcom] .- ll) .- exp(llC[:, C] .- ll) #(llC[:, kcom] .- llC[:, C]) ./ ll
+        S_π[:, kcom] = exp.(llC[:, kcom] .- ll) .- exp.(llC[:, C] .- ll) #(llC[:, kcom] .- llC[:, C]) ./ ll
     end
     for i in 1:n
         for kcom in 1:C
@@ -56,7 +56,7 @@ function asymptoticdistribution(x::RealVector{Float64}, wi::Vector{Float64}, mu:
     D, V = eig(I_λ_η)
     D[D.<0.] = 0.
     debuginfo && println(D)
-    I_λ_η2 = V * diagm(sqrt(D)) * V'
+    I_λ_η2 = V * diagm(sqrt.(D)) * V'
     u = randn(nrep, 2*C) * I_λ_η2
     EM = zeros(nrep, C)
     T = zeros(nrep)
@@ -83,14 +83,14 @@ Repeat the `gmm` for `ntrials` randomly generated starting values and pick the o
  - `ptau`: whether to add the penalty on `tau` be included in likelihood. Better to be `true` since the more `tau` values we try the larger the test statistic
 
 """
-function gmmrepeat(x::RealVector, C::Int, 
-    wi_init::Vector{Float64}, 
+function gmmrepeat(x::RealVector, C::Int,
+    wi_init::Vector{Float64},
     mu_init::Vector{Float64},
     sigmas_init::Vector{Float64};
     ntrials::Int=25,
-    taufixed::Bool=false, whichtosplit::Int=1, tau::Real=0.5, 
+    taufixed::Bool=false, whichtosplit::Int=1, tau::Real=0.5,
    sn::Vector{Float64}=std(x).*ones(C), an::Real=1/length(x), debuginfo::Bool=false, tol::Real=.001, pl::Bool=false, ptau::Bool=false)
-   
+
     n = length(x)
     tau = min(tau, 1-tau)
     mu_lb = minimum(x) .* ones(C)
@@ -112,7 +112,7 @@ function gmmrepeat(x::RealVector, C::Int,
         tmp = wi_init[whichtosplit] + wi_init[whichtosplit+1]
         wi_init[whichtosplit] = tmp*tau
         wi_init[whichtosplit+1] = tmp*(1-tau)
-        mu_init[whichtosplit] -= 1e-3 
+        mu_init[whichtosplit] -= 1e-3
     end
 
     wi = repmat(wi_init, 1, 4*ntrials)
@@ -153,10 +153,10 @@ function gmmrepeat(x::RealVector, C::Int,
     debuginfo && println("Trial:", re)
     return(re)
 end
- 
+
 """
     kstest(x, C0)
-    
+
 Do the EM test under null Hypothesis of `C0` components.
 If rejected, then it suggest the true number of components is greater than `C0`.
 Optional arguments for `kstest`
@@ -168,7 +168,7 @@ Optional arguments for `kstest`
 """
 function kstest(x::RealVector{Float64}, C0::Int; vtau::Vector{Float64}=[.5;],
     ntrials::Int=25, debuginfo::Bool=false, tol::Real=0.001,ptau::Bool=true)
-    
+
     C1 = C0+1
     n = length(x)
 
@@ -200,9 +200,9 @@ function kstest(x::RealVector{Float64}, C0::Int; vtau::Vector{Float64}=[.5;],
 
         lrv[i, whichtosplit] = gmmrepeat(x, C1,
          wi_C1, mu0[ind], sigmas0[ind],
-         ntrials=ntrials, 
-         taufixed=true, whichtosplit=whichtosplit, tau=vtau[i], 
-         sn=sigmas0[ind], an=an, 
+         ntrials=ntrials,
+         taufixed=true, whichtosplit=whichtosplit, tau=vtau[i],
+         sn=sigmas0[ind], an=an,
          debuginfo=debuginfo, tol=tol, pl=false, ptau=ptau)[4]
        if debuginfo
            println(whichtosplit, " ", vtau[i], "->",
