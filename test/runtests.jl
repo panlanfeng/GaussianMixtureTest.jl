@@ -1,6 +1,6 @@
 using Distributions
 using GaussianMixtureTest
-using Base.Test
+using Test
 
 mu_true = [-2.0858,-1.4879]
 wi_true = [0.0828,0.9172]

@@ -70,16 +70,16 @@ function H1(y, mu, sigmas)
     (y .- mu)./sigmas./sigmas
 end
 function H2(y, mu, sigmas)
-    z = (y .- mu)./sigmas
-    (z.^2 .-1)./sigmas^2./2
+    z = (y .- mu) ./ sigmas
+    (z .^2 .-1) ./ sigmas^2 ./ 2
 end
 
 function H3(y, mu, sigmas)
     z = (y .- mu)./sigmas
-    (z.^3 .-3.*z) ./ sigmas^3./6
+    (z .^3 .- 3 .* z) ./ sigmas^3 ./6
 end
 
 function H4(y, mu, sigmas)
     z = (y .- mu)./sigmas
-    (z.^4 .-6.*z.^2 .+ 3) ./ sigmas^4 ./ 24
+    (z .^ 4 .-6 .* z .^ 2 .+ 3) ./ sigmas^4 ./ 24
 end

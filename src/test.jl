@@ -53,15 +53,15 @@ function asymptoticdistribution(x::RealVector{Float64}, wi::Vector{Float64}, mu:
     I_λ_η = I_all[(3*C):(5*C-1), (3*C):(5*C-1)] - I_all[(3*C):(5*C-1), 1:(3*C-1)] * inv(I_all[1:(3*C-1), 1:(3*C-1)]) * I_all[1:(3*C-1),(3*C):(5*C-1)]
     debuginfo && println(round(I_λ_η, 6))
     #I_λ_η=(I_λ_η .+ I_λ_η')./2
-    D, V = eig(I_λ_η)
-    D[D.<0.] = 0.
+    D, V = eigen(I_λ_η)
+    D[D.<0.] .= 0.
     debuginfo && println(D)
-    I_λ_η2 = V * diagm(sqrt.(D)) * V'
+    I_λ_η2 = V * Matrix(Diagonal(sqrt.(D))) * V'
     u = randn(nrep, 2*C) * I_λ_η2
     EM = zeros(nrep, C)
     T = zeros(nrep)
     for kcom in 1:C
-        EM[:, kcom] = sum(u[:, (2*kcom-1):(2*kcom)] * inv(I_λ_η[(2*kcom-1):(2*kcom), (2*kcom-1):(2*kcom)]) .* u[:, (2*kcom-1):(2*kcom)], 2)
+        EM[:, kcom] = sum(u[:, (2*kcom-1):(2*kcom)] * inv(I_λ_η[(2*kcom-1):(2*kcom), (2*kcom-1):(2*kcom)]) .* u[:, (2*kcom-1):(2*kcom)], dims=2)
     end
     for i in 1:nrep
         T[i] = maximum(EM[i, :])
@@ -115,9 +115,9 @@ function gmmrepeat(x::RealVector, C::Int,
         mu_init[whichtosplit] -= 1e-3
     end
 
-    wi = repmat(wi_init, 1, 4*ntrials)
-    mu = repmat(mu_init, 1, 4*ntrials)
-    sigmas = repmat(sigmas_init, 1, 4*ntrials)
+    wi = repeat(wi_init, 1, 4*ntrials)
+    mu = repeat(mu_init, 1, 4*ntrials)
+    sigmas = repeat(sigmas_init, 1, 4*ntrials)
     ml = -Inf .* ones(4*ntrials)
     for i in 1:4*ntrials
         #set the first initial value as mu_init, sigmas_init
@@ -192,7 +192,7 @@ function kstest(x::RealVector{Float64}, C0::Int; vtau::Vector{Float64}=[.5;],
     lr = 0.0
     lrv = zeros(length(vtau), C0)
     for whichtosplit in 1:C0, i in 1:length(vtau)
-        ind = [1:whichtosplit, whichtosplit:C0;]
+        ind = [1:whichtosplit; whichtosplit:C0;]
 
         wi_C1 = wi0[ind]
         wi_C1[whichtosplit] = wi_C1[whichtosplit]*vtau[i]

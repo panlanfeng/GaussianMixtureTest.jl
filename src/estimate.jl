@@ -112,11 +112,11 @@ Optional arguments of `gmm`:
 """
 function gmm(x::RealVector{Float64}, ncomponent::Int,
     wi_init::Vector{Float64}=ones(ncomponent)/ncomponent,
-     mu_init::Vector{Float64}=quantile(x, linspace(0, 1, ncomponent+2)[2:end-1]),
+     mu_init::Vector{Float64}=quantile(x, range(0, stop=1, length=ncomponent+2)[2:end-1]),
      sigmas_init::Vector{Float64}=ones(ncomponent).*std(x);
       whichtosplit::Int64=1, tau::Float64=.5,
-       mu_lb::Vector{Float64}=-Inf.*ones(wi_init),
-        mu_ub::Vector{Float64}=Inf.*ones(wi_init),
+       mu_lb::Vector{Float64}=-Inf.*ones(length(wi_init)),
+        mu_ub::Vector{Float64}=Inf.*ones(length(wi_init)),
         an::Float64=1/length(x), sn::Vector{Float64}=ones(ncomponent).*std(x),
          maxiteration::Int64=10000, tol::Real=.001, taufixed::Bool=false, pl::Bool=true, ptau::Bool=false)
 
@@ -138,8 +138,8 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
     mu_old = copy(mu)
     sigmas_old=copy(sigmas)
 
-    wi_divide_sigmas = zeros(wi)
-    inv_2sigmas_sq = ones(sigmas)
+    wi_divide_sigmas = zeros(length(wi))
+    inv_2sigmas_sq = ones(length(sigmas))
     pwi = ones(n, ncomponent)
     xtmp = copy(x)
 
@@ -176,9 +176,9 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
             end
         end
 
-        copy!(wi_old, wi)
-        copy!(mu_old, mu)
-        copy!(sigmas_old, sigmas)
+        copyto!(wi_old, wi)
+        copyto!(mu_old, mu)
+        copyto!(sigmas_old, sigmas)
 
         for j in 1:ncomponent
             colsum = sum(pwi[:, j])
@@ -269,5 +269,5 @@ function confidenceinterval(x::RealVector{Float64}, wi::Vector{Float64}, mu::Vec
     shat = sqrt.(diag(inv(I_η))./n)
     println("Parameter Standard Deviation: ", shat)
     tmp = quantile(Normal(), 1-(1-confidencelevel) / 2 )
-    zip([wi[1:(C-1)], mu, sigmas;] .- tmp.*shat, [wi[1:(C-1)], mu, sigmas;] .+ tmp.*shat) |> collect
+    zip([wi[1:(C-1)]; mu; sigmas;] .- tmp.*shat, [wi[1:(C-1)]; mu; sigmas;] .+ tmp.*shat) |> collect
 end
