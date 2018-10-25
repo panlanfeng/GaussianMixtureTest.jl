@@ -42,18 +42,18 @@ function asymptoticdistribution(x::RealVector{Float64}, wi::Vector{Float64}, mu:
     I_λ = S_λ'*S_λ./n
     I_all = vcat(hcat(I_η, I_λη'), hcat(I_λη, I_λ))
     if 1/cond(I_all) < eps(Float64)
-        D, V = eig(I_all)
+        D, V = eigen((I_all .+ transpose(I_all))./ 2)
         debuginfo && println(D)
-        tol2 = maximum(abs(D)) * 1e-14
-        D[D.<tol2] = tol2
-        I_all = V*diagm(D)*V'
+        tol2 = maximum(abs.(D)) * 1e-14
+        D[D.<tol2] .= tol2
+        I_all = V*Matrix(Diagonal(D))*V'
     end
     debuginfo && println(round(cor(S_η), 6))
     debuginfo && println(round(cor(S_λ), 6))
     I_λ_η = I_all[(3*C):(5*C-1), (3*C):(5*C-1)] - I_all[(3*C):(5*C-1), 1:(3*C-1)] * inv(I_all[1:(3*C-1), 1:(3*C-1)]) * I_all[1:(3*C-1),(3*C):(5*C-1)]
     debuginfo && println(round(I_λ_η, 6))
     #I_λ_η=(I_λ_η .+ I_λ_η')./2
-    D, V = eigen(I_λ_η)
+    D, V = eigen((I_λ_η .+ transpose(I_λ_η)) ./ 2)
     D[D.<0.] .= 0.
     debuginfo && println(D)
     I_λ_η2 = V * Matrix(Diagonal(sqrt.(D))) * V'

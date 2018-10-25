@@ -20,7 +20,7 @@ function decidepenalty(wi0::Vector, mu0::Vector, sigmas0::Vector, nobs::Int)
         return 1.8*x/(1+x)
     elseif C == 3
         omega = omega123(wi, mu, sigmas)
-        omega = min(max(omega, 1e-16), 1 - 1e-16)
+        omega = min.(max.(omega, 1e-16), 1 - 1e-16)
         t_omega = (omega[1]*omega[2])/(1-omega[1])/(1-omega[2])
         x =  exp(-1.678 -0.232*log(t_omega) -175.50/nobs)
         return 1.5*x/(1+x)
@@ -118,7 +118,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
        mu_lb::Vector{Float64}=-Inf.*ones(length(wi_init)),
         mu_ub::Vector{Float64}=Inf.*ones(length(wi_init)),
         an::Float64=1/length(x), sn::Vector{Float64}=ones(ncomponent).*std(x),
-         maxiteration::Int64=10000, tol::Real=.001, taufixed::Bool=false, pl::Bool=true, ptau::Bool=false)
+         maxiteration::Int64=10000, tol::Real=.001, taufixed::Bool=false, pl::Bool=false, ptau::Bool=false)
 
     if ncomponent == 1
         mu = [mean(x)]
@@ -185,7 +185,7 @@ function gmm(x::RealVector{Float64}, ncomponent::Int,
             if colsum == 0.
                 wi[j] = 1/n
                 sigmas[j] *=2
-                warn("Empty component occur at iteration $(iter_em). Auto increase its variance by a factor 2. wi=$(wi), mu=$(mu), sigmas=$(sigmas)")
+                @warn("Empty component occur at iteration $(iter_em). Auto increase its variance by a factor 2. wi=$(wi), mu=$(mu), sigmas=$(sigmas)")
                 continue
             end
             wi[j] = colsum / n
